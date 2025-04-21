@@ -36,7 +36,7 @@ model_points = np.array([
 ])
 
 MAX_HEAD_YAW = 63
-MAX_HEAD_PITCH = 160
+MAX_HEAD_PITCH = 165
 
 GAZE_CONSEC_FRAMES = 1
 
