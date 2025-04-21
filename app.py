@@ -38,28 +38,11 @@ model_points = np.array([
 MAX_HEAD_YAW = 63
 MAX_HEAD_PITCH = 160
 
-
 GAZE_CONSEC_FRAMES = 1
 
 looking_away_counter = 0
-eyes_closed_counter = 0
 looking_away = False
-eyes_closed = False
 
-def eye_aspect_ratio(eye_landmarks):
-    # Calculate Eye Aspect Ratio (EAR)
-    A = distance.euclidean(eye_landmarks[1], eye_landmarks[5])
-    B = distance.euclidean(eye_landmarks[2], eye_landmarks[4])
-    C = distance.euclidean(eye_landmarks[0], eye_landmarks[3])
-    return (A + B) / (2.0 * C)
-
-def get_eye_position(eye_landmarks, img_w, img_h):
-    # Calculate eye center and movement from neutral position
-    eye_center = np.mean(eye_landmarks, axis=0)
-    neutral_position = (img_w/2, img_h/2)  # Center of screen
-    horizontal_diff = (eye_center[0] - neutral_position[0]) / neutral_position[0] * 100
-    vertical_diff = (eye_center[1] - neutral_position[1]) / neutral_position[1] * 100
-    return horizontal_diff, vertical_diff
 
 while cap.isOpened():
     success, frame = cap.read()
@@ -97,26 +80,9 @@ while cap.isOpened():
             angles, _, _, _, _, _ = cv2.RQDecomp3x3(rmat)
             pitch, yaw, roll = angles
 
-            # Eye landmarks for gaze detection
-            left_eye = np.array([(face_landmarks.landmark[i].x * img_w, face_landmarks.landmark[i].y * img_h) 
-                                for i in [33, 160, 158, 133, 153, 144]], dtype="float32")
-            right_eye = np.array([(face_landmarks.landmark[i].x * img_w, face_landmarks.landmark[i].y * img_h) 
-                                 for i in [362, 385, 387, 263, 373, 380]], dtype="float32")
-
-            # Calculate Eye Aspect Ratio
-            left_ear = eye_aspect_ratio(left_eye)
-            right_ear = eye_aspect_ratio(right_eye)
-            avg_ear = (left_ear + right_ear) / 2.0
-
-            # Get eye movement from center
-            left_eye_h, left_eye_v = get_eye_position(left_eye, img_w, img_h)
-            right_eye_h, right_eye_v = get_eye_position(right_eye, img_w, img_h)
-            avg_eye_h = (left_eye_h + right_eye_h) / 2
-            avg_eye_v = (left_eye_v + right_eye_v) / 2
-
             head_moved = (abs(yaw) > MAX_HEAD_YAW ) or (abs(pitch) < MAX_HEAD_PITCH)
             
-            if (head_moved) and not eyes_closed:
+            if (head_moved):
                 looking_away_counter += 1
                 if looking_away_counter >= GAZE_CONSEC_FRAMES and not looking_away:
                     looking_away = True
