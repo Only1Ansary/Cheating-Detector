@@ -29,30 +29,26 @@ class GazeDetectorApp:
         self.window.geometry("1200x800")
         self.window.configure(bg='white')
         
-        
         self.cap = cv2.VideoCapture(0)
         _, frame = self.cap.read()
         self.img_h, self.img_w = frame.shape[:2]
-        
         
         self.video_frame = tk.Label(self.window, bg='white', borderwidth=2, relief="groove")
         self.video_frame.place(x=20, y=20, width=self.img_w, height=self.img_h)
         
         
-        self.status_label = tk.Label(self.window, text="Status: FOCUSED", font=('Helvetica', 14), bg='white', fg='green')
+        self.status_text = tk.StringVar(value="Status: FOCUSED")
+        self.status_color = "green"
+        self.status_label = tk.Label(self.window, textvariable=self.status_text, font=('Helvetica', 14), bg='white', fg=self.status_color)
         self.status_label.place(x=self.img_w + 40, y=30)
-        
         
         self.processing_frame = tk.Frame(self.window, bg='white')
         self.processing_frame.place(x=20, y=self.img_h + 40, width=self.img_w, height=100)
         
-        
         self.create_processing_buttons()
         
-       
         self.finish_btn = ttk.Button(self.window, text="Show Original Captures", command=lambda: self.show_captures())
         self.finish_btn.place(x=self.img_w//2 - 100, y=self.img_h + 160, width=200, height=40)
-        
         
         self.focal_length = self.img_w
         self.camera_matrix = np.array([
@@ -139,22 +135,18 @@ class GazeDetectorApp:
                         self.looking_away_counter = max(0, self.looking_away_counter - 1)
                         if self.looking_away_counter == 0 and self.looking_away:
                             self.looking_away = False
+
+
+                    if self.looking_away:
+                        self.status_text.set("Status: LOOKING AWAY")
+                        self.status_label.config(fg="red")
+                    else:
+                        self.status_text.set("Status: FOCUSED")
+                        self.status_label.config(fg="green")
                     
                     if self.looking_away and not prev_state:
                         self.capture_image(frame)
-                    
-                    status_color = (0, 255, 0) if not self.looking_away else (0, 0, 255)
-                    status_text = "FOCUSED" if not self.looking_away else "LOOKING AWAY!"
-                    self.status_label.config(text=f"Status: {status_text}", 
-                                          fg="green" if not self.looking_away else "red")
-                    
-                    cv2.putText(frame, f"Head YAW: {yaw:.1f} (Max: {self.MAX_HEAD_YAW})", (10, 30), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, status_color, 1)
-                    cv2.putText(frame, f"Head PITCH: {pitch:.1f} (Max: {self.MAX_HEAD_PITCH})", (10, 60), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, status_color, 1)
-                    cv2.putText(frame, "STATE: " + status_text, 
-                                (self.img_w-250, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
-            
+
             img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             img = Image.fromarray(img)
             imgtk = ImageTk.PhotoImage(image=img)
@@ -218,7 +210,6 @@ class GazeDetectorApp:
             smoothed_img[:, :, c] = cv2.filter2D(padded_img[:, :, c], -1, kernel)[pad:-pad, pad:-pad]
 
         return Image.fromarray(smoothed_img)
-
 
 
     def apply_HistogramEqualization(self, img_path):
@@ -305,7 +296,7 @@ class GazeDetectorApp:
         self.cap.release()
         self.window.destroy()
 
-# Create and run the application
+
 root = tk.Tk()
 app = GazeDetectorApp(root)
 root.protocol("WM_DELETE_WINDOW", app.on_closing)
